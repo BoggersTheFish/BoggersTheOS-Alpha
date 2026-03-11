@@ -32,9 +32,10 @@ You should see:
 - Kernel startup message
 - GUI and app node registration
 - Spawned processes (e.g. shell, init)
-- Scheduler steps (which PID runs, by node weight)
+- Scheduler steps (which PID runs, by node weight) and a scheduling log (weights used)
 - A successful alloc via syscall
-- A dump of the TS node hierarchy (strongest first)
+- Toy app: get_node_weight for shell/init; Spawn denied for app (weight too low)
+- A tree dump of the TS node hierarchy (kernel ★ at top, children by parent)
 
 The binary is a **hosted** OS personality: it runs as a normal process and simulates the TS stack (kernel, drivers, syscall, libos, gui, apps) so you can develop and test logic without bare metal.
 

@@ -1,10 +1,7 @@
 //! OS library: user-facing API. All functions go through syscall (which references kernel).
 //! TS: each lib call is a weighted node affecting OS state while preserving kernel integrity.
 
-use boggers_kernel::{
-    node::NodeId,
-    security::SecurityContext,
-};
+use boggers_kernel::{node::NodeId, security::SecurityContext};
 use boggers_syscall::{SyscallHandler, SyscallNumber, SyscallReturn};
 
 /// High-level process handle. Uses syscall layer.
@@ -19,13 +16,17 @@ impl Process {
         handler.scheduler.current()
     }
 
-    /// Exit the current process (via syscall).
-    pub fn exit(handler: &SyscallHandler, ctx: &SecurityContext) -> Result<(), boggers_kernel::KernelError> {
+    pub fn exit(
+        handler: &SyscallHandler,
+        ctx: &SecurityContext,
+    ) -> Result<(), boggers_kernel::KernelError> {
         handler.dispatch(ctx, SyscallNumber::Exit, &[]).map(|_| ())
     }
 
-    /// Yield to scheduler.
-    pub fn yield_to_scheduler(handler: &SyscallHandler, ctx: &SecurityContext) -> Result<(), boggers_kernel::KernelError> {
+    pub fn yield_to_scheduler(
+        handler: &SyscallHandler,
+        ctx: &SecurityContext,
+    ) -> Result<(), boggers_kernel::KernelError> {
         handler.dispatch(ctx, SyscallNumber::Yield, &[]).map(|_| ())
     }
 }
@@ -49,4 +50,33 @@ pub fn dealloc(
     base: u64,
 ) -> Result<(), boggers_kernel::KernelError> {
     handler.dispatch(ctx, SyscallNumber::Dealloc, &[base]).map(|_| ())
+}
+
+/// Get TS weight for a node (or caller if node_id not provided). Fails if weight check denies.
+pub fn get_node_weight(
+    handler: &SyscallHandler,
+    ctx: &SecurityContext,
+    node_id: Option<NodeId>,
+) -> Result<f64, boggers_kernel::KernelError> {
+    let arg = node_id.map(|n| n as u64).unwrap_or(ctx.node_id as u64);
+    match handler.dispatch(ctx, SyscallNumber::GetNodeWeight, &[arg])? {
+        SyscallReturn::Weight(w) => Ok(w),
+        _ => Err(boggers_kernel::KernelError::InternalError),
+    }
+}
+
+/// Yield to scheduler; next process chosen by TS weight (stronger wins). No override.
+pub fn yield_to_stronger(
+    handler: &SyscallHandler,
+    ctx: &SecurityContext,
+) -> Result<(), boggers_kernel::KernelError> {
+    handler.dispatch(ctx, SyscallNumber::YieldToStronger, &[]).map(|_| ())
+}
+
+/// Print syscall (allowed if caller weight >= min for Print). Message content not passed in skeleton.
+pub fn print(
+    handler: &SyscallHandler,
+    ctx: &SecurityContext,
+) -> Result<(), boggers_kernel::KernelError> {
+    handler.dispatch(ctx, SyscallNumber::Print, &[]).map(|_| ())
 }

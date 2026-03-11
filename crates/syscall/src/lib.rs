@@ -1,32 +1,40 @@
 //! System call interface: user ↔ kernel boundary. All syscalls reference the kernel.
-//! TS: syscalls are weighted nodes that propagate requests to the strongest node.
+//! TS: every syscall checks caller's node weight vs required min_weight; kernel always allowed.
 
 use boggers_kernel::{
     error::KernelError,
-    node::NodeId,
+    node::{NodeId, KERNEL_NODE_ID},
     process::ProcessId,
     security::{Privilege, SecurityContext},
 };
 use std::sync::Arc;
 
-/// Syscall numbers. Each is a distinct entry point into the kernel.
+/// Syscall numbers. Each has a TS min_weight (see min_weight_for_syscall).
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SyscallNumber {
-    /// Exit current process
     Exit = 0,
-    /// Get process id
     GetPid = 1,
-    /// Spawn process (kernel node only in full impl)
     Spawn = 2,
-    /// Yield to scheduler
     Yield = 3,
-    /// Allocate memory (node_id, size)
     Alloc = 4,
-    /// Deallocate memory (base)
     Dealloc = 5,
-    /// Log message (debug)
     Log = 6,
+    GetNodeWeight = 7,
+    YieldToStronger = 8,
+    Print = 9,
+}
+
+/// TS: minimum node weight required to perform this syscall. Kernel (1.0) always allowed.
+fn min_weight_for_syscall(num: SyscallNumber) -> f64 {
+    use SyscallNumber::*;
+    match num {
+        Exit | GetPid | Yield | YieldToStronger => 0.2,
+        Alloc | Dealloc | GetNodeWeight => 0.3,
+        Print => 0.4,
+        Log => 0.5,
+        Spawn => 1.0, // kernel only
+    }
 }
 
 /// Result of a system call.
@@ -38,25 +46,46 @@ pub enum SyscallReturn {
     Pid(ProcessId),
     Address(u64),
     Size(usize),
+    Weight(f64),
 }
 
-/// System call handler: holds references to kernel subsystems and dispatches syscalls.
-/// TS: every invocation is evaluated relative to the kernel; security context is checked first.
+/// System call handler. TS: before any operation we check caller weight >= min_weight for that syscall.
 pub struct SyscallHandler {
     pub node_id: NodeId,
+    pub registry: Arc<boggers_kernel::TsRegistry>,
     pub security: Arc<boggers_kernel::SecurityMonitor>,
     pub scheduler: Arc<boggers_kernel::Scheduler>,
     pub memory: Arc<boggers_kernel::MemoryManager>,
 }
 
 impl SyscallHandler {
-    /// Dispatch a syscall. Returns result or error. Caller must be the current process.
+    /// TS: reject if caller's weight is below the syscall's min_weight. Kernel (id 0) always passes.
+    /// No override: we never allow a lower-weight node to perform a syscall requiring higher weight.
+    fn check_weight(&self, ctx: &SecurityContext, num: SyscallNumber) -> Result<(), KernelError> {
+        if ctx.node_id == KERNEL_NODE_ID {
+            return Ok(());
+        }
+        let min_w = min_weight_for_syscall(num);
+        let caller_w = self.registry.get_weight(ctx.node_id).unwrap_or(0.0);
+        if caller_w < min_w {
+            let msg = format!(
+                "syscall {:?} denied: node {} weight {:.3} < min {:.3}",
+                num, ctx.node_id, caller_w, min_w
+            );
+            self.security.log_violation(&msg);
+            return Err(KernelError::PermissionDenied);
+        }
+        Ok(())
+    }
+
     pub fn dispatch(
         &self,
         ctx: &SecurityContext,
         num: SyscallNumber,
         args: &[u64],
     ) -> SyscallResult {
+        self.check_weight(ctx, num)?;
+
         match num {
             SyscallNumber::Exit => {
                 let pid = self.scheduler.current().ok_or(KernelError::InvalidNode)?;
@@ -90,10 +119,7 @@ impl SyscallHandler {
                 self.memory.deallocate(base)?;
                 Ok(SyscallReturn::Unit)
             }
-            SyscallNumber::Log => {
-                // In real OS we'd pass a message pointer/size; here we ignore.
-                Ok(SyscallReturn::Unit)
-            }
+            SyscallNumber::Log => Ok(SyscallReturn::Unit),
             SyscallNumber::Spawn => {
                 if ctx.privilege != Privilege::Kernel {
                     return Err(KernelError::PermissionDenied);
@@ -102,9 +128,22 @@ impl SyscallHandler {
                     return Err(KernelError::InvalidArgument);
                 }
                 let node_id = args[0] as NodeId;
-                // name would come from user buffer in real impl
                 let pid = self.scheduler.spawn(node_id, "user".into())?;
                 Ok(SyscallReturn::Pid(pid))
+            }
+            SyscallNumber::GetNodeWeight => {
+                let query_id = args.get(0).copied().unwrap_or(ctx.node_id as u64) as NodeId;
+                let w = self.registry.get_weight(query_id).unwrap_or(0.0);
+                Ok(SyscallReturn::Weight(w))
+            }
+            SyscallNumber::YieldToStronger => {
+                // TS: yield is always to the scheduler; "stronger" is enforced by scheduler picking by weight.
+                let _ = self.scheduler.schedule();
+                Ok(SyscallReturn::Unit)
+            }
+            SyscallNumber::Print => {
+                // Simple print: args could be length + pointer in real OS; here we just allow and return.
+                Ok(SyscallReturn::Unit)
             }
         }
     }

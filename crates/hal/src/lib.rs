@@ -1,9 +1,51 @@
 //! Hardware Abstraction Layer. All hardware is a node; drivers implement these traits.
-//! TS: HAL exists to maximise throughput and minimise latency under kernel control.
+//! TS: HAL exposes simulated devices (sim-uart, sim-timer) which drivers register as TS nodes.
 
 use boggers_kernel::hal_traits::{CpuNode, Hal, RamNode, StorageNode};
 use boggers_kernel::KernelError;
 use std::sync::Arc;
+
+// --- Simulated devices (drivers register them in TsRegistry with weights 0.7–0.85) ---
+
+/// Simulated UART. No real I/O; drivers crate registers it as a node.
+pub struct SimUart {
+    #[allow(dead_code)]
+    rx_buf: std::sync::RwLock<Vec<u8>>,
+}
+
+impl SimUart {
+    pub fn new() -> Self {
+        Self {
+            rx_buf: std::sync::RwLock::new(Vec::new()),
+        }
+    }
+}
+
+impl Default for SimUart {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+/// Simulated timer. No real ticks; drivers crate registers it as a node.
+pub struct SimTimer {
+    #[allow(dead_code)]
+    tick_count: std::sync::RwLock<u64>,
+}
+
+impl SimTimer {
+    pub fn new() -> Self {
+        Self {
+            tick_count: std::sync::RwLock::new(0),
+        }
+    }
+}
+
+impl Default for SimTimer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 /// Simulated CPU for hosted/skeleton OS. Real HAL would read from /proc or bare metal.
 pub struct SimCpu {

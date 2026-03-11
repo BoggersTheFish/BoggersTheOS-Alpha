@@ -64,3 +64,7 @@ If a conflict arises (e.g. two subsystems claim the same resource, or a security
 1. **Prioritise the TS hierarchy**: stronger node wins.
 2. **Prioritise the strongest node**: kernel integrity over everything else.
 3. No silent fallback that bypasses this order; if something cannot be satisfied, return an error rather than overriding TS logic.
+
+## Current status and suggested weights
+
+See [CURRENT-STATUS.md](CURRENT-STATUS.md) for what is implemented and suggested weights for future nodes (e.g. networking 0.6, GUI 0.5, apps 0.3–0.4).

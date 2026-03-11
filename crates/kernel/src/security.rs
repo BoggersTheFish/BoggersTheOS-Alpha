@@ -87,6 +87,11 @@ impl SecurityMonitor {
     pub fn violations(&self) -> Vec<String> {
         self.violations.read().unwrap().clone()
     }
+
+    /// TS: log a violation (e.g. weight check failure) without checking access.
+    pub fn log_violation(&self, msg: &str) {
+        self.violations.write().unwrap().push(msg.to_string());
+    }
 }
 
 impl Default for SecurityMonitor {

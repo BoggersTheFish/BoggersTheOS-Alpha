@@ -10,7 +10,7 @@ pub mod hal_traits;
 pub mod security;
 pub mod error;
 
-pub use node::{NodeId, NodeWeight, TsNode, TsRegistry};
+pub use node::{NodeId, NodeInfo, NodeStatus, NodeWeight, TsNode, TsRegistry};
 pub use process::{ProcessId, ProcessState, Scheduler};
 pub use memory::{MemoryRegion, MemoryManager};
 pub use hal_traits::Hal;
