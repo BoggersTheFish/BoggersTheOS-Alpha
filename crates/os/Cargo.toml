@@ -1,0 +1,18 @@
+# OS runner: assembles all layers and runs the TS-driven system.
+[package]
+name = "boggers_os"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "boggers_os"
+path = "src/main.rs"
+
+[dependencies]
+boggers_kernel = { path = "../kernel" }
+boggers_hal = { path = "../hal" }
+boggers_drivers = { path = "../drivers" }
+boggers_syscall = { path = "../syscall" }
+boggers_libos = { path = "../libos" }
+boggers_gui = { path = "../gui" }
+boggers_apps = { path = "../apps" }

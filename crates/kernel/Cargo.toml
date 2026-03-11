@@ -1,0 +1,11 @@
+# Strongest node: core of the OS. All other components emerge from this.
+[package]
+name = "boggers_kernel"
+version.workspace = true
+edition.workspace = true
+
+[lib]
+name = "boggers_kernel"
+
+[dependencies]
+# No external deps: kernel is the root. Optional later: spin, bitflags for no_std.

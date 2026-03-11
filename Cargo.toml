@@ -1,0 +1,22 @@
+# BoggersTheOS — TS-Driven Operating System
+# Workspace: kernel is the strongest node; all crates reference it.
+[workspace]
+resolver = "2"
+members = [
+    "crates/kernel",
+    "crates/hal",
+    "crates/drivers",
+    "crates/syscall",
+    "crates/libos",
+    "crates/gui",
+    "crates/apps",
+    "crates/os",
+]
+exclude = []
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["BoggersTheOS"]
+license = "MIT"
+repository = ""

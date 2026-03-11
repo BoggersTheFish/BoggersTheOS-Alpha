@@ -1,0 +1,9 @@
+# GUI: emergent UI node. Depends on libos and kernel for state propagation.
+[package]
+name = "boggers_gui"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+boggers_kernel = { path = "../kernel" }
+boggers_libos = { path = "../libos" }

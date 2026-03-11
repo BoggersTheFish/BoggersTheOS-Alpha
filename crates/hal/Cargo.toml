@@ -1,0 +1,8 @@
+# Hardware abstraction: trait definitions only. All hardware is a node.
+[package]
+name = "boggers_hal"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+boggers_kernel = { path = "../kernel" }

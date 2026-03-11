@@ -1,0 +1,10 @@
+# Applications: top-level nodes. Depend on libos and optionally gui.
+[package]
+name = "boggers_apps"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+boggers_kernel = { path = "../kernel" }
+boggers_libos = { path = "../libos" }
+boggers_gui = { path = "../gui" }

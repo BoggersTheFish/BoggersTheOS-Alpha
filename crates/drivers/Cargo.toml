@@ -1,0 +1,9 @@
+# Secondary nodes: drivers reference kernel + HAL.
+[package]
+name = "boggers_drivers"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+boggers_kernel = { path = "../kernel" }
+boggers_hal = { path = "../hal" }

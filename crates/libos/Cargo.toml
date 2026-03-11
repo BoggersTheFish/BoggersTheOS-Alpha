@@ -1,0 +1,9 @@
+# OS library: user-facing API. Depends on syscall (which references kernel).
+[package]
+name = "boggers_libos"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+boggers_kernel = { path = "../kernel" }
+boggers_syscall = { path = "../syscall" }

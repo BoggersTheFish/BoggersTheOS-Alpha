@@ -1,0 +1,8 @@
+# System call interface: user ↔ kernel boundary. References kernel only.
+[package]
+name = "boggers_syscall"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+boggers_kernel = { path = "../kernel" }
